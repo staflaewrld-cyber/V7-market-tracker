@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V6 - Market Tracker</title>
+<style>
+body{font-family:Arial;margin:0;padding:12px;background:#f2f2f2}
+h2{text-align:center;margin:8px 0}
+.box{background:#fff;padding:12px;border-radius:8px;margin-bottom:12px}
+input,select{width:100%;padding:10px;margin:5px 0;border:1px solid #ccc;border-radius:6px;font-size:15px;box-sizing:border-box}
+button{width:100%;padding:11px;border:none;border-radius:6px;background:#222;color:#fff;font-size:15px;margin-top:6px}
+button.green{background:#008751}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid #ddd;padding:8px 4px;text-align:left}
+.del{background:red;color:#fff;border:none;padding:4px 8px;border-radius:4px}
+</style>
+</head>
+<body>
+<h2>My Market Tracker - V6</h2>
+<div class="box">
+  <input id="item" placeholder="Item name">
+  <input id="qty" type="number" placeholder="Qty">
+  <input id="buy" type="number" placeholder="Buy Price">
+  <input id="sell" type="number" placeholder="Sell Price">
+  <select id="cat"><option>Food</option><option>Drinks</option><option>Provisions</option><option>Other</option></select>
+  <button class="green" onclick="addSale()">Add Sale</button>
+</div>
+<div class="box">
+  <p><b>Total Sales:</b> <span id="totalSales">₦0</span></p>
+  <p><b>Total Profit:</b> <span id="totalProfit">₦0</span></p>
+  <p><b>Items Sold:</b> <span id="totalItems">0</span></p>
+  <button onclick="exportCSV()">Download CSV</button>
+  <button onclick="clearAll()" style="background:#c0392b">Clear All</button>
+</div>
+<div class="box">
+  <h3 style="margin:0 0 8px">Sales List</h3>
+  <table><tr><th>Item</th><th>Qty</th><th>Profit</th><th></th></tr><tbody id="list"></tbody></table>
+  <p id="empty" style="text-align:center;color:#888">No sales yet</p>
+</div>
+<script>
+let sales = JSON.parse(localStorage.getItem('v6sales')||'[]');
+function addSale(){
+  let item=document.getElementById('item').value;
+  let qty=+document.getElementById('qty').value||1;
+  let buy=+document.getElementById('buy').value||0;
+  let sell=+document.getElementById('sell').value||0;
+  let cat=document.getElementById('cat').value;
+  if(!item||!sell){alert('Put item and sell price');return;}
+  sales.unshift({item,qty,buy,sell,cat,profit:(sell-buy)*qty,date:Date.now()});
+  localStorage.setItem('v6sales',JSON.stringify(sales));
+  document.getElementById('item').value='';document.getElementById('qty').value='';document.getElementById('buy').value='';document.getElementById('sell').value='';
+  render();
+}
+function render(){
+  let ts=0,tp=0,ti=0; let html='';
+  sales.forEach((s,i)=>{ts+=s.sell*s.qty; tp+=s.profit; ti+=s.qty; html+=`<tr><td>${s.item}<br><small>${s.cat}</small></td><td>${s.qty}</td><td>₦${s.profit.toLocaleString()}</td><td><button class="del" onclick="del(${i})">X</button></td></tr>`;});
+  document.getElementById('totalSales').innerText='₦'+ts.toLocaleString();
+  document.getElementById('totalProfit').innerText='₦'+tp.toLocaleString();
+  document.getElementById('totalItems').innerText=ti;
+  document.getElementById('list').innerHTML=html;
+  document.getElementById('empty').style.display=sales.length?'none':'block';
+}
+function del(i){sales.splice(i,1);localStorage.setItem('v6sales',JSON.stringify(sales));render();}
+function clearAll(){if(confirm('Clear all?')){sales=[];localStorage.removeItem('v6sales');render();}}
+function exportCSV(){
+  let csv='Item,Category,Qty,Buy,Sell,Profit,Date\n';
+  sales.forEach(s=>{csv+=`${s.item},${s.cat},${s.qty},${s.buy},${s.sell},${s.profit},${new Date(s.date).toLocaleDateString()}\n`});
+  let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='sales.csv';a.click();
+}
+render();
+</script>
+</body>
+</html>
